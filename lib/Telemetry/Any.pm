@@ -14,6 +14,8 @@ my $telemetry = __PACKAGE__->new();
 sub import {
     my ( $class, $var ) = @_;
 
+    return if !defined $var;
+
     my $saw_var;
     if ( $var =~ /^\$(\w+)/ ) {
         $saw_var = $1;
