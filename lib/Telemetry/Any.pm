@@ -31,6 +31,18 @@ sub import {
     return;
 }
 
+sub reset {
+    my ($self) = @_;
+
+    %{$self} = (
+        times => [],
+        count => 0,
+        label => {},
+    );
+
+    return $self;
+}
+
 1;
 __END__
 

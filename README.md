@@ -1,4 +1,4 @@
-
+[![Build Status](https://travis-ci.org/ivanych/Telemetry-Any.svg?branch=master)](https://travis-ci.org/ivanych/Telemetry-Any) [![MetaCPAN Release](https://badge.fury.io/pl/Telemetry-Any.svg)](https://metacpan.org/release/Telemetry-Any)
 # NAME
 
 Telemetry::Any - It's new $module
