@@ -3,7 +3,33 @@ use 5.008001;
 use strict;
 use warnings;
 
+use Carp;
+
+use base 'Devel::Timer';
+
 our $VERSION = "0.01";
+
+my $telemetry = __PACKAGE__->new();
+
+sub import {
+    my ( $class, $var ) = @_;
+
+    my $saw_var;
+    if ( $var =~ /^\$(\w+)/ ) {
+        $saw_var = $1;
+    }
+    else {
+        croak('Аrgument must be a variable');
+    }
+
+    my $caller = caller();
+
+    no strict 'refs';
+    my $varname = "${caller}::${saw_var}";
+    *$varname = \$telemetry;
+
+    return;
+}
 
 1;
 __END__
