@@ -17,7 +17,7 @@ sub import {
     return if !defined $var;
 
     my $saw_var;
-    if ( $var =~ /^\$(\w+)/ ) {
+    if ( $var =~ /^\$(\w+)/x ) {
         $saw_var = $1;
     }
     else {
@@ -26,14 +26,14 @@ sub import {
 
     my $caller = caller();
 
-    no strict 'refs';
+    no strict 'refs';    ## no critic (TestingAndDebugging::ProhibitNoStrict
     my $varname = "${caller}::${saw_var}";
     *$varname = \$telemetry;
 
     return;
 }
 
-sub reset {
+sub reset {              ## no critic (Subroutines::ProhibitBuiltinHomonyms)
     my ($self) = @_;
 
     %{$self} = (
