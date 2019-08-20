@@ -26,7 +26,7 @@ sub import {
 
     my $caller = caller();
 
-    no strict 'refs';    ## no critic (TestingAndDebugging::ProhibitNoStrict
+    no strict 'refs';    ## no critic (TestingAndDebugging::ProhibitNoStrict)
     my $varname = "${caller}::${saw_var}";
     *$varname = \$telemetry;
 
