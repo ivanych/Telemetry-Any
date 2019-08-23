@@ -33,36 +33,30 @@ sub import {
     return;
 }
 
+## calculate total time (start time vs last time)
+sub total_time {
+    my ($self) = @_;
+
+    return Time::HiRes::tv_interval( $self->{times}->[0], $self->{times}->[ $self->{count} - 1 ] );
+}
+
 sub report {
     my ( $self, %args ) = @_;
 
-    ## calculate total time (start time vs last time)
-
-    my $total_time = Time::HiRes::tv_interval( $self->{times}->[0], $self->{times}->[ $self->{count} - 1 ] );
-
     if ( $args{format} eq 'table' ) {
-        $self->print( ref($self) . ' Report -- Total time: ' . sprintf( '%.4f', $total_time ) . ' secs' );
+        $self->print( ref($self) . ' Report -- Total time: ' . sprintf( '%.4f', $self->total_time() ) . ' secs' );
     }
 
     if ( $args{collapse} ) {
-        $self->_calculate_collapsed;
-
-        if ( $args{format} eq 'table' ) {
-            $self->print('Count     Time    Percent');
-            $self->print('----------------------------------------------');
-        }
-
-        my $c       = $self->{collapsed};
-        my $sort_by = $args{sort_by} || 'time';
-        my @labels  = sort { $c->{$b}->{$sort_by} <=> $c->{$a}->{$sort_by} } keys %$c;
-        foreach my $label (@labels) {
-            my $count = $c->{$label}->{count};
-            my $time  = $c->{$label}->{time};
-            my $msg = sprintf( '%8s  %.4f  %5.2f%%  %s', ( $count, $time, ( ( $time / $total_time ) * 100 ), $label ) );
-            $self->print($msg);
-        }
-        return 1;
+        return $self->_report_collapse(%args);
     }
+    else {
+        return $self->_report(%args);
+    }
+}
+
+sub _report {
+    my ( $self, %args ) = @_;
 
     if ( $args{format} eq 'table' ) {
         $self->print('Interval  Time    Percent');
@@ -87,16 +81,42 @@ sub report {
             '%02d -> %02d  %.4f  %5.2f%%  %s -> %s',
             ( $i->{index} - 1 ),
             $i->{index}, $i->{value},    #$self->print("\n");
-            ( ( $i->{value} / $total_time ) * 100 ),
+            ( ( $i->{value} / $self->total_time() ) * 100 ),
             $self->{label}->{ ( $i->{index} - 1 ) },
             $self->{label}->{ $i->{index} }
         );
 
         $self->print($msg);
     }
+
+    return 1;
 }
 
-sub reset {                              ## no critic (Subroutines::ProhibitBuiltinHomonyms)
+sub _report_collapse {
+    my ( $self, %args ) = @_;
+
+    if ( $args{format} eq 'table' ) {
+        $self->print('Count     Time    Percent');
+        $self->print('----------------------------------------------');
+    }
+
+    $self->_calculate_collapsed;
+
+    my $c       = $self->{collapsed};
+    my $sort_by = $args{sort_by} || 'time';
+    my @labels  = sort { $c->{$b}->{$sort_by} <=> $c->{$a}->{$sort_by} } keys %$c;
+    foreach my $label (@labels) {
+        my $count = $c->{$label}->{count};
+        my $time  = $c->{$label}->{time};
+        my $msg
+            = sprintf( '%8s  %.4f  %5.2f%%  %s', ( $count, $time, ( ( $time / $self->total_time() ) * 100 ), $label ) );
+        $self->print($msg);
+    }
+
+    return 1;
+}
+
+sub reset {    ## no critic (Subroutines::ProhibitBuiltinHomonyms)
     my ($self) = @_;
 
     %{$self} = (
