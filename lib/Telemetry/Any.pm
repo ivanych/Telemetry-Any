@@ -43,25 +43,36 @@ sub total_time {
 sub report {
     my ( $self, %args ) = @_;
 
+    my @records = $args{collapse} ? $self->collapsed(%args) : $self->detailed(%args);
+
+    my $report;
+
     if ( defined $args{format} && $args{format} eq 'table' ) {
-        $self->print( ref($self) . ' Report -- Total time: ' . sprintf( '%.4f', $self->total_time() ) . ' secs' );
+        $report .= ref($self) . ' Report -- Total time: ' . sprintf( '%.4f', $self->total_time() ) . " secs\n";
     }
 
     if ( $args{collapse} ) {
-        return $self->_report_collapse(%args);
+        if ( defined $args{format} && $args{format} eq 'table' ) {
+            $report .= "Count     Time    Percent\n";
+            $report .= "----------------------------------------------\n";
+        }
     }
     else {
-        return $self->_report(%args);
+        if ( defined $args{format} && $args{format} eq 'table' ) {
+            $report .= "Interval  Time    Percent\n";
+            $report .= "----------------------------------------------\n";
+        }
     }
+
+    $report .= join "\n", @records;
+
+    $self->print($report);
+
+    return 1;
 }
 
-sub _report {
+sub detailed {
     my ( $self, %args ) = @_;
-
-    if ( defined $args{format} && $args{format} eq 'table' ) {
-        $self->print('Interval  Time    Percent');
-        $self->print('----------------------------------------------');
-    }
 
     ## sort interval structure based on value
 
@@ -71,6 +82,8 @@ sub _report {
     ## report of each time space between marks
     ##
 
+    my @records;
+
     for my $i ( @{ $self->{intervals} } ) {
         ## skip first time (to make an interval,
         ## compare the current time with the previous one)
@@ -79,41 +92,43 @@ sub _report {
 
         my $msg = sprintf(
             '%02d -> %02d  %.4f  %5.2f%%  %s -> %s',
-            ( $i->{index} - 1 ),
-            $i->{index}, $i->{value},    #$self->print("\n");
-            ( ( $i->{value} / $self->total_time() ) * 100 ),
-            $self->{label}->{ ( $i->{index} - 1 ) },
-            $self->{label}->{ $i->{index} }
+            $i->{index} - 1,
+            $i->{index}, $i->{value},
+            $i->{value} / $self->total_time() * 100,
+            $self->{label}->{ $i->{index} - 1 },
+            $self->{label}->{ $i->{index} },
         );
 
-        $self->print($msg);
+        push @records, $msg;
     }
 
-    return 1;
+    return @records;
 }
 
-sub _report_collapse {
+sub collapsed {
     my ( $self, %args ) = @_;
-
-    if ( defined $args{format} && $args{format} eq 'table' ) {
-        $self->print('Count     Time    Percent');
-        $self->print('----------------------------------------------');
-    }
 
     $self->_calculate_collapsed;
 
-    my $c       = $self->{collapsed};
+    my $c = $self->{collapsed};
     my $sort_by = $args{sort_by} || 'time';
-    my @labels  = sort { $c->{$b}->{$sort_by} <=> $c->{$a}->{$sort_by} } keys %$c;
+
+    my @labels = sort { $c->{$b}->{$sort_by} <=> $c->{$a}->{$sort_by} } keys %$c;
+
+    my @records;
+
     foreach my $label (@labels) {
-        my $count = $c->{$label}->{count};
-        my $time  = $c->{$label}->{time};
-        my $msg
-            = sprintf( '%8s  %.4f  %5.2f%%  %s', ( $count, $time, ( ( $time / $self->total_time() ) * 100 ), $label ) );
-        $self->print($msg);
+        my $msg = sprintf(
+            '%8s  %.4f  %5.2f%%  %s',
+            $c->{$label}->{count},
+            $c->{$label}->{time},
+            $c->{$label}->{time} / $self->total_time() * 100, $label,
+        );
+
+        push @records, $msg;
     }
 
-    return 1;
+    return @records;
 }
 
 sub reset {    ## no critic (Subroutines::ProhibitBuiltinHomonyms)
