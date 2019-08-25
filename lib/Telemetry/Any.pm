@@ -7,7 +7,7 @@ use Carp;
 
 use base 'Devel::Timer';
 
-our $VERSION = "0.02";
+our $VERSION = "0.03";
 
 my $telemetry = __PACKAGE__->new();
 
