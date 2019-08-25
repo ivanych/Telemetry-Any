@@ -36,10 +36,10 @@ subtest collapse => sub {
         $t->report( collapse => 1 );
     };
 
-    like( $stderr, qr/\n + 3 .* A -> B/,                      "A -> B" );
-    like( $stderr, qr/\n + 1 .* B -> C/,                      "B -> C" );
-    like( $stderr, qr/\n + 2 .* B -> A/,                      "B -> A" );
-    like( $stderr, qr/\n + 1 .* INIT -> A/,                   "INIT -> A" );
+    like( $stderr, qr/ + 3 .* A -> B\n/,                      "A -> B" );
+    like( $stderr, qr/ + 1 .* B -> C\n/,                      "B -> C" );
+    like( $stderr, qr/ + 2 .* B -> A\n/,                      "B -> A" );
+    like( $stderr, qr/ + 1 .* INIT -> A\n/,                   "INIT -> A" );
     like( $stderr, qr/A -> B.* B -> C.* B -> A.* INIT -> A/s, "order by time descending" );
 };
 

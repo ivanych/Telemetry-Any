@@ -43,7 +43,7 @@ sub total_time {
 sub report {
     my ( $self, %args ) = @_;
 
-    if ( $args{format} eq 'table' ) {
+    if ( defined $args{format} && $args{format} eq 'table' ) {
         $self->print( ref($self) . ' Report -- Total time: ' . sprintf( '%.4f', $self->total_time() ) . ' secs' );
     }
 
@@ -58,7 +58,7 @@ sub report {
 sub _report {
     my ( $self, %args ) = @_;
 
-    if ( $args{format} eq 'table' ) {
+    if ( defined $args{format} && $args{format} eq 'table' ) {
         $self->print('Interval  Time    Percent');
         $self->print('----------------------------------------------');
     }
@@ -95,7 +95,7 @@ sub _report {
 sub _report_collapse {
     my ( $self, %args ) = @_;
 
-    if ( $args{format} eq 'table' ) {
+    if ( defined $args{format} && $args{format} eq 'table' ) {
         $self->print('Count     Time    Percent');
         $self->print('----------------------------------------------');
     }
