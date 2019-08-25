@@ -2,6 +2,10 @@ Revision history for Perl extension Telemetry-Any
 
 {{$NEXT}}
 
+0.04 2019-08-25T20:27:20Z
+
+    - format parameter check fixed
+
 0.03 2019-08-25T19:27:54Z
 
     - The report() method now accepts the format parameter
