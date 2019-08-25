@@ -2,6 +2,10 @@ Revision history for Perl extension Telemetry-Any
 
 {{$NEXT}}
 
+0.05 2019-08-25T21:54:00Z
+
+    - Reporting method changed
+
 0.04 2019-08-25T20:27:20Z
 
     - format parameter check fixed
