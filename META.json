@@ -67,7 +67,7 @@
          "web" : "https://github.com/ivanych/Telemetry-Any"
       }
    },
-   "version" : "0.05",
+   "version" : "0.06",
    "x_authority" : "cpan:IVANYCH",
    "x_serialization_backend" : "JSON::PP version 2.27300"
 }
