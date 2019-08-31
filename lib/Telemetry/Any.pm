@@ -71,7 +71,7 @@ sub report {
                 '%02d -> %02d  %.4f  %5.2f%%  %s',
                 $_->{interval} - 1,
                 $_->{interval}, $_->{time}, $_->{percent}, $_->{label},
-                )
+            )
         } @records;
     }
 
@@ -97,7 +97,7 @@ sub detailed {
 
         next if ( $i->{index} == 0 );
 
-        my $record = {
+        my $record = {    ## no critic (NamingConventions::ProhibitAmbiguousNames
             interval => $i->{index},
             time     => sprintf( '%.6f', $i->{value} ),
             percent  => sprintf( '%.2f', $i->{value} / $self->total_time() * 100 ),
@@ -115,7 +115,7 @@ sub collapsed {
 
     $self->_calculate_collapsed;
 
-    my $c = $self->{collapsed};
+    my $c       = $self->{collapsed};
     my $sort_by = $args{sort_by} || 'time';
 
     my @labels = sort { $c->{$b}->{$sort_by} <=> $c->{$a}->{$sort_by} } keys %$c;
@@ -124,7 +124,7 @@ sub collapsed {
 
     foreach my $label (@labels) {
 
-        my $record = {
+        my $record = {    ## no critic (NamingConventions::ProhibitAmbiguousNames
             count   => $c->{$label}->{count},
             time    => sprintf( '%.6f', $c->{$label}->{time} ),
             percent => sprintf( '%.2f', $c->{$label}->{time} / $self->total_time() * 100 ),

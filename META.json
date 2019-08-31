@@ -48,6 +48,7 @@
       },
       "test" : {
          "requires" : {
+            "Perl::Tidy" : "20190601",
             "Test::More" : "0.98",
             "Test::Perl::Critic" : "0",
             "Test::PerlTidy" : "0"
