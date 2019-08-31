@@ -75,8 +75,6 @@ sub report {
         } @records;
     }
 
-    $self->print($report);
-
     return $report;
 }
 

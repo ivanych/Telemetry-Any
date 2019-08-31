@@ -4,7 +4,6 @@ use strict;
 use warnings;
 
 use Test::More;
-use Capture::Tiny qw(capture);
 
 plan tests => 6;
 
@@ -13,10 +12,8 @@ use_ok('Telemetry::Any');
 subtest simple => sub {
     plan tests => 8;
 
-    my ( $stdout, $stderr, $exit ) = capture {
-        my $t = _process();
-        $t->report();
-    };
+    my $t      = _process();
+    my $stderr = $t->report();
 
     like( $stderr, qr/00 -> 01 .* INIT -> A/, "step 0" );
     like( $stderr, qr/01 -> 02 .* A -> B/,    "step 1" );
@@ -31,25 +28,21 @@ subtest simple => sub {
 subtest collapse => sub {
     plan tests => 5;
 
-    my ( $stdout, $stderr, $exit ) = capture {
-        my $t = _process();
-        $t->report( collapse => 1 );
-    };
+    my $t = _process();
+    my $stderr = $t->report( collapse => 1 );
 
     like( $stderr, qr/ + 3 .* A -> B\n/,                      "A -> B" );
     like( $stderr, qr/ + 1 .* B -> C\n/,                      "B -> C" );
     like( $stderr, qr/ + 2 .* B -> A\n/,                      "B -> A" );
-    like( $stderr, qr/ + 1 .* INIT -> A\n/,                   "INIT -> A" );
+    like( $stderr, qr/ + 1 .* INIT -> A/,                     "INIT -> A" );
     like( $stderr, qr/A -> B.* B -> C.* B -> A.* INIT -> A/s, "order by time descending" );
 };
 
 subtest table => sub {
     plan tests => 11;
 
-    my ( $stdout, $stderr, $exit ) = capture {
-        my $t = _process();
-        $t->report( format => 'table' );
-    };
+    my $t = _process();
+    my $stderr = $t->report( format => 'table' );
 
     like( $stderr, qr/Total time/,                "Total time" );
     like( $stderr, qr/Interval  Time    Percent/, "header" );
@@ -67,10 +60,8 @@ subtest table => sub {
 subtest collapse_table => sub {
     plan tests => 8;
 
-    my ( $stdout, $stderr, $exit ) = capture {
-        my $t = _process();
-        $t->report( collapse => 1, format => 'table' );
-    };
+    my $t = _process();
+    my $stderr = $t->report( collapse => 1, format => 'table' );
 
     like( $stderr, qr/Total time/,                            "Total time" );
     like( $stderr, qr/Count     Time    Percent/,             "header" );
@@ -85,12 +76,10 @@ subtest collapse_table => sub {
 subtest simple_reset => sub {
     plan tests => 8;
 
-    my ( $stdout, $stderr, $exit ) = capture {
-        my $t = _process();
-        $t->reset();
-        $t = _process_work($t);
-        $t->report();
-    };
+    my $t = _process();
+    $t->reset();
+    $t = _process_work($t);
+    my $stderr = $t->report();
 
     unlike( $stderr, qr/INIT/, "no INIT" );
     like( $stderr, qr/00 -> 01 .* A -> B/, "step 0" );
