@@ -43,7 +43,13 @@ sub total_time {
 sub report {
     my ( $self, %args ) = @_;
 
-    my @records = $args{collapse} ? $self->collapsed(%args) : $self->detailed(%args);
+    my @records;
+    if ( $args{labels} ) {
+        @records = $args{collapse} ? $self->any_labels_collapsed(%args) : $self->any_labels_detailed( $args{labels} );
+    }
+    else {
+        @records = $args{collapse} ? $self->collapsed(%args) : @{ $self->detailed(%args) };
+    }
 
     my $report;
 
@@ -57,8 +63,11 @@ sub report {
             $report .= "----------------------------------------------\n";
         }
 
-        $report .= join "\n",
-            map { sprintf( '%8s  %.4f  %5.2f%%  %s', $_->{count}, $_->{time}, $_->{percent}, $_->{label}, ) } @records;
+        $report .=
+            (@records)
+            ? join "\n", map { sprintf( '%8s  %.4f  %5.2f%%  %s', $_->{count}, $_->{time}, $_->{percent}, $_->{label}, ) } @records
+            : '';
+
     }
     else {
         if ( defined $args{format} && $args{format} eq 'table' ) {
@@ -66,13 +75,15 @@ sub report {
             $report .= "----------------------------------------------\n";
         }
 
-        $report .= join "\n", map {
+        $report .= (@records)
+            ? join "\n", map {
             sprintf(
-                '%02d -> %02d  %.4f  %5.2f%%  %s',
-                $_->{interval} - 1,
-                $_->{interval}, $_->{time}, $_->{percent}, $_->{label},
+                '%04d -> %04d  %.4f  %5.2f%%  %s',
+                $args{labels} ? $_->{from} : $_->{interval} - 1,
+                $args{labels} ? $_->{to} : $_->{interval}, $_->{time}, $_->{percent}, $_->{label},
             )
-        } @records;
+            } @records
+            : '';
     }
 
     return $report;
@@ -147,6 +158,110 @@ sub reset {    ## no critic (Subroutines::ProhibitBuiltinHomonyms)
     );
 
     return $self;
+}
+
+sub any_labels_detailed {
+    my ( $self, $input_labels ) = @_;
+
+    my $any_labels  = _filter_input_labels($input_labels);
+    my $count_pairs = $self->_define_count_pairs($any_labels);
+    return () if ( !scalar %{$count_pairs} );
+
+    my @records = ();
+
+    foreach my $start_count ( keys %{$count_pairs} ) {
+        my $finish_count = $count_pairs->{$start_count};
+        my $time         = Time::HiRes::tv_interval( $self->{times}->[$start_count], $self->{times}->[$finish_count] );
+        my $record       = {
+            from    => $start_count,
+            to      => $finish_count,
+            time    => sprintf( '%.6f', $time ),
+            percent => sprintf( '%.2f', $time / $self->total_time() * 100 ),
+            label   => sprintf( '%s -> %s', $self->{label}->{$start_count}, $self->{label}->{$finish_count} ),
+        };
+        push @records, $record;
+    }
+
+    return [ sort { $b->{time} <=> $a->{time} } @records ];
+}
+
+sub any_labels_collapsed {
+    my ( $self, %args ) = @_;
+
+    my $detailed = $self->any_labels_detailed( $args{labels} );
+    my $c        = _calculate_any_labels_collapsed($detailed);
+    my $sort_by  = $args{sort_by} || 'time';
+
+    my @labels = sort { $c->{$b}->{$sort_by} <=> $c->{$a}->{$sort_by} } keys %$c;
+
+    my @records = ();
+    foreach my $label (@labels) {
+
+        my $record = {
+            count   => $c->{$label}->{count},
+            time    => sprintf( '%.6f', $c->{$label}->{time} ),
+            percent => sprintf( '%.2f', $c->{$label}->{time} / $self->total_time() * 100 ),
+            label   => $label,
+        };
+        push @records, $record;
+    }
+
+    return @records;
+}
+
+sub _filter_input_labels {
+    my ($input_labels) = @_;
+
+    my $result = {};
+    foreach my $start_label ( keys %{$input_labels} ) {
+
+        if (   $start_label
+            && $input_labels->{$start_label}
+            && $start_label ne $input_labels->{$start_label} )
+        {
+            $result->{$start_label} = $input_labels->{$start_label};
+        }
+    }
+
+    return $result;
+}
+
+sub _define_count_pairs {
+    my ( $self, $input_labels ) = @_;
+    use Data::Dumper;
+
+    my @starts_counts = ();
+    my $counts_pairs  = {};
+    my @labels_counts = sort { $a <=> $b } keys %{ $self->{label} };
+
+    foreach my $count (@labels_counts) {    #warn 1;
+        foreach my $start_label ( keys %{$input_labels} ) {
+
+            if ( $self->{label}->{$count} eq $start_label ) {
+                push @starts_counts, $count;
+            }
+            elsif ( $self->{label}->{$count} eq $input_labels->{$start_label} ) {
+                my $start_count = pop @starts_counts;
+                if ( defined $start_count ) {
+                    $counts_pairs->{$start_count} = $count;
+                }
+            }
+        }
+    }
+    return $counts_pairs;
+}
+
+sub _calculate_any_labels_collapsed {
+    my ($records) = @_;
+
+    my %collapsed;
+    foreach my $i (@$records) {
+        my $label = $i->{label};
+        my $time  = $i->{time};
+        $collapsed{$label}{time} += $time;
+        $collapsed{$label}{count}++;
+    }
+    return \%collapsed;
 }
 
 1;
