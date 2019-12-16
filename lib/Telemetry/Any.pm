@@ -43,48 +43,16 @@ sub total_time {
 sub report {
     my ( $self, %args ) = @_;
 
-    my @records;
-    if ( $args{labels} ) {
-        @records = $args{collapse} ? $self->any_labels_collapsed(%args) : $self->any_labels_detailed( $args{labels} );
-    }
-    else {
-        @records = $args{collapse} ? $self->collapsed(%args) : @{ $self->detailed(%args) };
-    }
+    my $report = $self->_report_headers(%args);
 
-    my $report;
+    my @records
+        = $args{labels}
+        ? ( $args{collapse} ? $self->any_labels_collapsed(%args) : $self->any_labels_detailed( $args{labels} ) )
+        : ( $args{collapse} ? $self->collapsed(%args) : $self->detailed(%args) );
 
-    if ( defined $args{format} && $args{format} eq 'table' ) {
-        $report .= ref($self) . ' Report -- Total time: ' . sprintf( '%.4f', $self->total_time() ) . " secs\n";
-    }
+    return $report if ( !@records );
 
-    if ( $args{collapse} ) {
-        if ( defined $args{format} && $args{format} eq 'table' ) {
-            $report .= "Count     Time    Percent\n";
-            $report .= "----------------------------------------------\n";
-        }
-
-        $report .=
-            (@records)
-            ? join "\n", map { sprintf( '%8s  %.4f  %5.2f%%  %s', $_->{count}, $_->{time}, $_->{percent}, $_->{label}, ) } @records
-            : '';
-
-    }
-    else {
-        if ( defined $args{format} && $args{format} eq 'table' ) {
-            $report .= "Interval  Time    Percent\n";
-            $report .= "----------------------------------------------\n";
-        }
-
-        $report .= (@records)
-            ? join "\n", map {
-            sprintf(
-                '%04d -> %04d  %.4f  %5.2f%%  %s',
-                $args{labels} ? $_->{from} : $_->{interval} - 1,
-                $args{labels} ? $_->{to} : $_->{interval}, $_->{time}, $_->{percent}, $_->{label},
-            )
-            } @records
-            : '';
-    }
+    $report .= $self->_report_data( \%args, \@records );
 
     return $report;
 }
@@ -158,6 +126,41 @@ sub reset {    ## no critic (Subroutines::ProhibitBuiltinHomonyms)
     );
 
     return $self;
+}
+
+sub _report_headers {
+    my ( $self, %args ) = @_;
+
+    my $report;
+    my $column = $args{collapse} ? "Count   " : "Interval";
+
+    if ( defined $args{format} && $args{format} eq 'table' ) {
+
+        $report = ref($self) . ' Report -- Total time: ' . sprintf( '%.4f', $self->total_time() ) . " secs\n";
+        $report .= "$column  Time    Percent\n";
+        $report .= "----------------------------------------------\n";
+    }
+
+    return $report;
+}
+
+sub _report_data {
+    my ( $self, $args, $records ) = @_;
+
+    my $report;
+    if ( $args->{collapse} ) {
+        $report .= join "\n", map { sprintf( '%8s  %.4f  %5.2f%%  %s', $_->{count}, $_->{time}, $_->{percent}, $_->{label}, ) } @$records;
+    }
+    else {
+        $report .= join "\n", map {
+            sprintf(
+                '%04d -> %04d  %.4f  %5.2f%%  %s',
+                $args->{labels} ? $_->{from} : $_->{interval} - 1, $args->{labels} ? $_->{to} : $_->{interval}, $_->{time}, $_->{percent}, $_->{label},
+            )
+        } @$records;
+    }
+
+    return $report;
 }
 
 sub any_labels_detailed {
