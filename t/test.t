@@ -5,7 +5,7 @@ use warnings;
 
 use Test::More;
 
-plan tests => 8;
+plan tests => 10;
 
 use_ok('Telemetry::Any');
 
@@ -14,14 +14,14 @@ subtest simple => sub {
 
     my $report = _process()->report();
 
-    like( $report, qr/00 -> 01 .* INIT -> A/, "step 0" );
-    like( $report, qr/01 -> 02 .* A -> B/,    "step 1" );
-    like( $report, qr/02 -> 03 .* B -> A/,    "step 2" );
-    like( $report, qr/03 -> 04 .* A -> B/,    "step 3" );
-    like( $report, qr/04 -> 05 .* B -> A/,    "step 4" );
-    like( $report, qr/05 -> 06 .* A -> B/,    "step 5" );
-    like( $report, qr/06 -> 07 .* B -> C/,    "step 6" );
-    unlike( $report, qr/07 -> 08/, "no step 7" );
+    like( $report, qr/0000 -> 0001 .* INIT -> A/, "step 0" );
+    like( $report, qr/0001 -> 0002 .* A -> B/,    "step 1" );
+    like( $report, qr/0002 -> 0003 .* B -> A/,    "step 2" );
+    like( $report, qr/0003 -> 0004 .* A -> B/,    "step 3" );
+    like( $report, qr/0004 -> 0005 .* B -> A/,    "step 4" );
+    like( $report, qr/0005 -> 0006 .* A -> B/,    "step 5" );
+    like( $report, qr/0006 -> 0007 .* B -> C/,    "step 6" );
+    unlike( $report, qr/0007 -> 0008/, "no step 7" );
 };
 
 subtest collapse => sub {
@@ -49,10 +49,7 @@ subtest collapse_sort => sub {
     # If we sort by count there are two possible versions of the report
     # that are correct (because B -> C and INIT -> A both only happened one time
     # so we don't care which one shows up first on the report.
-    my $test = (
-               ( $report =~ /A -> B.* B -> A.* B -> C.* INIT -> A/s )
-            or ( $report =~ /A -> B.* B -> A.* INIT -> A.* B -> C/s )
-    );
+    my $test = ( ( $report =~ /A -> B.* B -> A.* B -> C.* INIT -> A/s ) or ( $report =~ /A -> B.* B -> A.* INIT -> A.* B -> C/s ) );
 
     ok( $test, "sort by count" ) or diag $report;
 };
@@ -64,13 +61,13 @@ subtest simple_reset => sub {
     my $report = _process_work($t)->report();
 
     unlike( $report, qr/INIT/, "no INIT" );
-    like( $report, qr/00 -> 01 .* A -> B/, "step 0" );
-    like( $report, qr/01 -> 02 .* B -> A/, "step 1" );
-    like( $report, qr/02 -> 03 .* A -> B/, "step 2" );
-    like( $report, qr/03 -> 04 .* B -> A/, "step 3" );
-    like( $report, qr/04 -> 05 .* A -> B/, "step 4" );
-    like( $report, qr/05 -> 06 .* B -> C/, "step 5" );
-    unlike( $report, qr/06 -> 07/, "no step 6" );
+    like( $report, qr/0000 -> 0001 .* A -> B/, "step 0" );
+    like( $report, qr/0001 -> 0002 .* B -> A/, "step 1" );
+    like( $report, qr/0002 -> 0003 .* A -> B/, "step 2" );
+    like( $report, qr/0003 -> 0004 .* B -> A/, "step 3" );
+    like( $report, qr/0004 -> 0005 .* A -> B/, "step 4" );
+    like( $report, qr/0005 -> 0006 .* B -> C/, "step 5" );
+    unlike( $report, qr/0006 -> 0007/, "no step 6" );
 };
 
 subtest stats => sub {
@@ -121,14 +118,14 @@ subtest table => sub {
     like( $report, qr/Total time/,                "Total time" );
     like( $report, qr/Interval  Time    Percent/, "header" );
     like( $report, qr/-{46}/,                     "line" );
-    like( $report, qr/00 -> 01 .* INIT -> A/,     "step 0" );
-    like( $report, qr/01 -> 02 .* A -> B/,        "step 1" );
-    like( $report, qr/02 -> 03 .* B -> A/,        "step 2" );
-    like( $report, qr/03 -> 04 .* A -> B/,        "step 3" );
-    like( $report, qr/04 -> 05 .* B -> A/,        "step 4" );
-    like( $report, qr/05 -> 06 .* A -> B/,        "step 5" );
-    like( $report, qr/06 -> 07 .* B -> C/,        "step 6" );
-    unlike( $report, qr/07 -> 08/, "no step 7" );
+    like( $report, qr/0000 -> 0001 .* INIT -> A/, "step 0" );
+    like( $report, qr/0001 -> 0002 .* A -> B/,    "step 1" );
+    like( $report, qr/0002 -> 0003 .* B -> A/,    "step 2" );
+    like( $report, qr/0003 -> 0004 .* A -> B/,    "step 3" );
+    like( $report, qr/0004 -> 0005 .* B -> A/,    "step 4" );
+    like( $report, qr/0005 -> 0006 .* A -> B/,    "step 5" );
+    like( $report, qr/0006 -> 0007 .* B -> C/,    "step 6" );
+    unlike( $report, qr/0007 -> 0008/, "no step 7" );
 };
 
 subtest collapse_table => sub {
@@ -144,6 +141,48 @@ subtest collapse_table => sub {
     like( $report, qr/\n + 2 .* B -> A/,                      "B -> A" );
     like( $report, qr/\n + 1 .* INIT -> A/,                   "INIT -> A" );
     like( $report, qr/A -> B.* B -> C.* B -> A.* INIT -> A/s, "order by time descending" );
+};
+
+subtest simple_with_any_labels => sub {
+    plan tests => 7;
+
+    my $report = _process()->report(
+        labels => [
+            [ 'INIT', 'B' ],
+            [ 'INIT', 'C' ],
+            [ 'A',    'B' ],
+            [ 'A',    'C' ],
+        ],
+    );
+
+    like( $report, qr/0000 -> 0007 .* INIT -> C/, "step 1" );
+    like( $report, qr/0000 -> 0002 .* INIT -> B/, "step 2" );
+    like( $report, qr/0001 -> 0002 .* A -> B/,    "step 3" );
+    like( $report, qr/0005 -> 0007 .* A -> C/,    "step 4" );
+    like( $report, qr/0003 -> 0004 .* A -> B/,    "step 5" );
+    like( $report, qr/0005 -> 0006 .* A -> B/,    "step 6" );
+    unlike( $report, qr/0002 -> 0003/, "no step 7" );
+};
+
+subtest collapse_with_any_labels => sub {
+    plan tests => 5;
+
+    my $report = _process()->report(
+        collapse => 1,
+        labels   => [
+            [ 'INIT', 'B' ],
+            [ 'INIT', 'C' ],
+            [ 'A',    'B' ],
+            [ 'A',    'C' ],
+        ],
+    );
+
+    like( $report, qr/ + 1 .* INIT -> C\n/, "INIT -> C" );
+    like( $report, qr/ + 3 .* A -> B\n/,    "A -> B" );
+    like( $report, qr/ + 1 .* INIT -> B/,   "INIT -> B" );
+    like( $report, qr/ + 1 .* A -> C/,      "A -> C" );
+
+    like( $report, qr/ INIT -> C.* A -> B.* INIT -> B.* A -> C/s, "order by time descending" );
 };
 
 #@returns Telemetry::Any
