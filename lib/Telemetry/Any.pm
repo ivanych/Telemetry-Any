@@ -168,12 +168,14 @@ sub any_labels_detailed {
 
     my $any_labels  = _filter_input_labels($input_labels);
     my $count_pairs = $self->_define_count_pairs($any_labels);
-    return () if ( !scalar %{$count_pairs} );
+
+    return () if ( !scalar @{$count_pairs} );
 
     my @records = ();
 
-    foreach my $start_count ( keys %{$count_pairs} ) {
-        my $finish_count = $count_pairs->{$start_count};
+    foreach my $counts (@$count_pairs) {
+        my $start_count  = $counts->[0];
+        my $finish_count = $counts->[1];
         my $time         = Time::HiRes::tv_interval( $self->{times}->[$start_count], $self->{times}->[$finish_count] );
         my $record       = {
             from    => $start_count,
@@ -185,14 +187,14 @@ sub any_labels_detailed {
         push @records, $record;
     }
 
-    return [ sort { $b->{time} <=> $a->{time} } @records ];
+    return sort { $b->{time} <=> $a->{time} } @records;
 }
 
 sub any_labels_collapsed {
     my ( $self, %args ) = @_;
 
-    my $detailed = $self->any_labels_detailed( $args{labels} );
-    my $c        = _calculate_any_labels_collapsed($detailed);
+    my @detailed = $self->any_labels_detailed( $args{labels} );
+    my $c        = _calculate_any_labels_collapsed(@detailed);
     my $sort_by  = $args{sort_by} || 'time';
 
     my @labels = sort { $c->{$b}->{$sort_by} <=> $c->{$a}->{$sort_by} } keys %$c;
@@ -215,14 +217,14 @@ sub any_labels_collapsed {
 sub _filter_input_labels {
     my ($input_labels) = @_;
 
-    my $result = {};
-    foreach my $start_label ( keys %{$input_labels} ) {
+    my $result = [];
 
-        if (   $start_label
-            && $input_labels->{$start_label}
-            && $start_label ne $input_labels->{$start_label} )
+    foreach my $labels (@$input_labels) {
+        if (   $labels->[0]
+            && $labels->[1]
+            && $labels->[0] ne $labels->[1] )
         {
-            $result->{$start_label} = $input_labels->{$start_label};
+            push @$result, $labels;
         }
     }
 
@@ -231,39 +233,41 @@ sub _filter_input_labels {
 
 sub _define_count_pairs {
     my ( $self, $input_labels ) = @_;
-    use Data::Dumper;
 
-    my @starts_counts = ();
-    my $counts_pairs  = {};
+    my $counts_pairs  = [];
     my @labels_counts = sort { $a <=> $b } keys %{ $self->{label} };
 
-    foreach my $count (@labels_counts) {    #warn 1;
-        foreach my $start_label ( keys %{$input_labels} ) {
+    foreach my $labels (@$input_labels) {
 
-            if ( $self->{label}->{$count} eq $start_label ) {
+        my @starts_counts = ();
+        foreach my $count (@labels_counts) {
+
+            if ( $self->{label}->{$count} eq $labels->[0] ) {
                 push @starts_counts, $count;
             }
-            elsif ( $self->{label}->{$count} eq $input_labels->{$start_label} ) {
+            elsif ( $self->{label}->{$count} eq $labels->[1] ) {
                 my $start_count = pop @starts_counts;
                 if ( defined $start_count ) {
-                    $counts_pairs->{$start_count} = $count;
+                    push @$counts_pairs, [ $start_count, $count ];
                 }
             }
         }
     }
+
     return $counts_pairs;
 }
 
 sub _calculate_any_labels_collapsed {
-    my ($records) = @_;
+    my (@records) = @_;
 
     my %collapsed;
-    foreach my $i (@$records) {
+    foreach my $i (@records) {
         my $label = $i->{label};
         my $time  = $i->{time};
         $collapsed{$label}{time} += $time;
         $collapsed{$label}{count}++;
     }
+
     return \%collapsed;
 }
 
