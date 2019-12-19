@@ -132,7 +132,7 @@ sub _report_headers {
     my ( $self, %args ) = @_;
 
     my $report;
-    my $column = $args{collapse} ? "Count   " : "Interval";
+    my $column = $args{collapse} ? "Count   " : "Interval    ";
 
     if ( defined $args{format} && $args{format} eq 'table' ) {
 
@@ -149,13 +149,16 @@ sub _report_data {
 
     my $report;
     if ( $args->{collapse} ) {
-        $report .= join "\n", map { sprintf( '%8s  %.4f  %5.2f%%  %s', $_->{count}, $_->{time}, $_->{percent}, $_->{label}, ) } @$records;
+        $report .= join "\n",
+            map { sprintf( '%8s  %.4f  %5.2f%%  %s', $_->{count}, $_->{time}, $_->{percent}, $_->{label}, ) } @$records;
     }
     else {
         $report .= join "\n", map {
             sprintf(
                 '%04d -> %04d  %.4f  %5.2f%%  %s',
-                $args->{labels} ? $_->{from} : $_->{interval} - 1, $args->{labels} ? $_->{to} : $_->{interval}, $_->{time}, $_->{percent}, $_->{label},
+                $args->{labels} ? $_->{from} : $_->{interval} - 1,
+                $args->{labels} ? $_->{to}   : $_->{interval},
+                $_->{time}, $_->{percent}, $_->{label},
             )
         } @$records;
     }
@@ -166,52 +169,22 @@ sub _report_data {
 sub any_labels_detailed {
     my ( $self, %args ) = @_;
 
-    my @labels  = _filter_input_labels( @{ $args{labels} } );
+    my @labels      = _filter_input_labels( @{ $args{labels} } );
     my @count_pairs = $self->_define_count_pairs(@labels);
 
     return () if ( !scalar @count_pairs );
 
-    my @records = ();
-
-    foreach my $counts (@count_pairs) {
-        my $start_count  = $counts->[0];
-        my $finish_count = $counts->[1];
-        my $time         = Time::HiRes::tv_interval( $self->{times}->[$start_count], $self->{times}->[$finish_count] );
-        my $record       = {
-            from    => $start_count,
-            to      => $finish_count,
-            time    => sprintf( '%.6f', $time ),
-            percent => sprintf( '%.2f', $time / $self->total_time() * 100 ),
-            label   => sprintf( '%s -> %s', $self->{label}->{$start_count}, $self->{label}->{$finish_count} ),
-        };
-        push @records, $record;
-    }
-
-    return sort { $b->{time} <=> $a->{time} } @records;
+    return sort { $b->{time} <=> $a->{time} } $self->_any_labels_detailed_records(@count_pairs);
 }
 
 sub any_labels_collapsed {
     my ( $self, %args ) = @_;
 
-    my @detailed = $self->any_labels_detailed(%args);
-    my $c        = _calculate_any_labels_collapsed(@detailed);
-    my $sort_by  = $args{sort_by} || 'time';
+    my @detailed  = $self->any_labels_detailed(%args);
+    my $collapsed = _calculate_any_labels_collapsed(@detailed);
+    my $sort_by   = $args{sort_by} || 'time';
 
-    my @labels = sort { $c->{$b}->{$sort_by} <=> $c->{$a}->{$sort_by} } keys %$c;
-
-    my @records = ();
-    foreach my $label (@labels) {
-
-        my $record = {
-            count   => $c->{$label}->{count},
-            time    => sprintf( '%.6f', $c->{$label}->{time} ),
-            percent => sprintf( '%.2f', $c->{$label}->{time} / $self->total_time() * 100 ),
-            label   => $label,
-        };
-        push @records, $record;
-    }
-
-    return @records;
+    return $self->_any_labels_collapsed_records( $collapsed, $sort_by );
 }
 
 sub _filter_input_labels {
@@ -258,6 +231,48 @@ sub _calculate_any_labels_collapsed {
     }
 
     return \%collapsed;
+}
+
+sub _any_labels_detailed_records {
+    my ( $self, @count_pairs ) = @_;
+
+    my @records = ();
+
+    foreach my $counts (@count_pairs) {
+        my $start_count  = $counts->[0];
+        my $finish_count = $counts->[1];
+        my $time         = Time::HiRes::tv_interval( $self->{times}->[$start_count], $self->{times}->[$finish_count] );
+        my $record       = {
+            from    => $start_count,
+            to      => $finish_count,
+            time    => sprintf( '%.6f', $time ),
+            percent => sprintf( '%.2f', $time / $self->total_time() * 100 ),
+            label   => sprintf( '%s -> %s', $self->{label}->{$start_count}, $self->{label}->{$finish_count} ),
+        };
+        push @records, $record;
+    }
+
+    return @records;
+}
+
+sub _any_labels_collapsed_records {
+    my ( $self, $collapsed, $sort_by ) = @_;
+
+    my @labels = sort { $collapsed->{$b}->{$sort_by} <=> $collapsed->{$a}->{$sort_by} } keys %$collapsed;
+
+    my @records = ();
+    foreach my $label (@labels) {
+
+        my $record = {
+            count   => $collapsed->{$label}->{count},
+            time    => sprintf( '%.6f', $collapsed->{$label}->{time} ),
+            percent => sprintf( '%.2f', $collapsed->{$label}->{time} / $self->total_time() * 100 ),
+            label   => $label,
+        };
+        push @records, $record;
+    }
+
+    return @records;
 }
 
 1;
