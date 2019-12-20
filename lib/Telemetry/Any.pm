@@ -44,15 +44,7 @@ sub report {
     my ( $self, %args ) = @_;
 
     my $report = $self->_report_headers(%args);
-
-    my @records
-        = $args{labels}
-        ? ( $args{collapse} ? $self->any_labels_collapsed(%args) : $self->any_labels_detailed(%args) )
-        : ( $args{collapse} ? $self->collapsed(%args) : $self->detailed(%args) );
-
-    return $report if ( !@records );
-
-    $report .= $self->_report_data( \%args, \@records );
+    $report .= $self->_report_data(%args);
 
     return $report;
 }
@@ -132,9 +124,9 @@ sub _report_headers {
     my ( $self, %args ) = @_;
 
     my $report;
-    my $column = $args{collapse} ? "Count   " : "Interval    ";
 
     if ( defined $args{format} && $args{format} eq 'table' ) {
+        my $column = $args{collapse} ? "Count   " : "Interval    ";
 
         $report = ref($self) . ' Report -- Total time: ' . sprintf( '%.4f', $self->total_time() ) . " secs\n";
         $report .= "$column  Time    Percent\n";
@@ -145,22 +137,28 @@ sub _report_headers {
 }
 
 sub _report_data {
-    my ( $self, $args, $records ) = @_;
+    my ( $self, %args ) = @_;
 
     my $report;
-    if ( $args->{collapse} ) {
+
+    my @records
+        = $args{labels}
+        ? ( $args{collapse} ? $self->any_labels_collapsed(%args) : $self->any_labels_detailed(%args) )
+        : ( $args{collapse} ? $self->collapsed(%args) : $self->detailed(%args) );
+
+    if ( $args{collapse} ) {
         $report .= join "\n",
-            map { sprintf( '%8s  %.4f  %5.2f%%  %s', $_->{count}, $_->{time}, $_->{percent}, $_->{label}, ) } @$records;
+            map { sprintf( '%8s  %.4f  %5.2f%%  %s', $_->{count}, $_->{time}, $_->{percent}, $_->{label}, ) } @records;
     }
     else {
         $report .= join "\n", map {
             sprintf(
                 '%04d -> %04d  %.4f  %5.2f%%  %s',
-                $args->{labels} ? $_->{from} : $_->{interval} - 1,
-                $args->{labels} ? $_->{to}   : $_->{interval},
+                $args{labels} ? $_->{from} : $_->{interval} - 1,
+                $args{labels} ? $_->{to}   : $_->{interval},
                 $_->{time}, $_->{percent}, $_->{label},
             )
-        } @$records;
+        } @records;
     }
 
     return $report;
