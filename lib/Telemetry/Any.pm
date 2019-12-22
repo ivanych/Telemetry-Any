@@ -144,7 +144,7 @@ sub _report_data {
     my @records
         = $args{labels}
         ? ( $args{collapse} ? $self->any_labels_collapsed(%args) : $self->any_labels_detailed(%args) )
-        : ( $args{collapse} ? $self->collapsed(%args) : $self->detailed(%args) );
+        : ( $args{collapse} ? $self->collapsed(%args)            : $self->detailed(%args) );
 
     if ( $args{collapse} ) {
         $report .= join "\n",
@@ -172,7 +172,9 @@ sub any_labels_detailed {
 
     return () if ( !scalar @count_pairs );
 
-    return sort { $b->{time} <=> $a->{time} } $self->_any_labels_detailed_records(@count_pairs);
+    my @sorted = sort { $b->{time} <=> $a->{time} } $self->_any_labels_detailed_records(@count_pairs);
+
+    return @sorted;
 }
 
 sub any_labels_collapsed {
@@ -240,7 +242,7 @@ sub _any_labels_detailed_records {
         my $start_count  = $counts->[0];
         my $finish_count = $counts->[1];
         my $time         = Time::HiRes::tv_interval( $self->{times}->[$start_count], $self->{times}->[$finish_count] );
-        my $record       = {
+        my $record = {    ## no critic (NamingConventions::ProhibitAmbiguousNames
             from    => $start_count,
             to      => $finish_count,
             time    => sprintf( '%.6f', $time ),
@@ -261,7 +263,7 @@ sub _any_labels_collapsed_records {
     my @records = ();
     foreach my $label (@labels) {
 
-        my $record = {
+        my $record = {    ## no critic (NamingConventions::ProhibitAmbiguousNames
             count   => $collapsed->{$label}->{count},
             time    => sprintf( '%.6f', $collapsed->{$label}->{time} ),
             percent => sprintf( '%.2f', $collapsed->{$label}->{time} / $self->total_time() * 100 ),
