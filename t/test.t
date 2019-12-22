@@ -49,7 +49,10 @@ subtest collapse_sort => sub {
     # If we sort by count there are two possible versions of the report
     # that are correct (because B -> C and INIT -> A both only happened one time
     # so we don't care which one shows up first on the report.
-    my $test = ( ( $report =~ /A -> B.* B -> A.* B -> C.* INIT -> A/s ) or ( $report =~ /A -> B.* B -> A.* INIT -> A.* B -> C/s ) );
+    my $test = (
+               ( $report =~ /A -> B.* B -> A.* B -> C.* INIT -> A/s )
+            or ( $report =~ /A -> B.* B -> A.* INIT -> A.* B -> C/s )
+    );
 
     ok( $test, "sort by count" ) or diag $report;
 };
@@ -115,16 +118,16 @@ subtest table => sub {
 
     my $report = _process()->report( format => 'table' );
 
-    like( $report, qr/Total time/,                "Total time" );
-    like( $report, qr/Interval  Time    Percent/, "header" );
-    like( $report, qr/-{46}/,                     "line" );
-    like( $report, qr/0000 -> 0001 .* INIT -> A/, "step 0" );
-    like( $report, qr/0001 -> 0002 .* A -> B/,    "step 1" );
-    like( $report, qr/0002 -> 0003 .* B -> A/,    "step 2" );
-    like( $report, qr/0003 -> 0004 .* A -> B/,    "step 3" );
-    like( $report, qr/0004 -> 0005 .* B -> A/,    "step 4" );
-    like( $report, qr/0005 -> 0006 .* A -> B/,    "step 5" );
-    like( $report, qr/0006 -> 0007 .* B -> C/,    "step 6" );
+    like( $report, qr/Total time/,                    "Total time" );
+    like( $report, qr/Interval      Time    Percent/, "header" );
+    like( $report, qr/-{46}/,                         "line" );
+    like( $report, qr/0000 -> 0001 .* INIT -> A/,     "step 0" );
+    like( $report, qr/0001 -> 0002 .* A -> B/,        "step 1" );
+    like( $report, qr/0002 -> 0003 .* B -> A/,        "step 2" );
+    like( $report, qr/0003 -> 0004 .* A -> B/,        "step 3" );
+    like( $report, qr/0004 -> 0005 .* B -> A/,        "step 4" );
+    like( $report, qr/0005 -> 0006 .* A -> B/,        "step 5" );
+    like( $report, qr/0006 -> 0007 .* B -> C/,        "step 6" );
     unlike( $report, qr/0007 -> 0008/, "no step 7" );
 };
 
@@ -146,14 +149,7 @@ subtest collapse_table => sub {
 subtest simple_with_any_labels => sub {
     plan tests => 7;
 
-    my $report = _process()->report(
-        labels => [
-            [ 'INIT', 'B' ],
-            [ 'INIT', 'C' ],
-            [ 'A',    'B' ],
-            [ 'A',    'C' ],
-        ],
-    );
+    my $report = _process()->report( labels => [ [ 'INIT', 'B' ], [ 'INIT', 'C' ], [ 'A', 'B' ], [ 'A', 'C' ], ], );
 
     like( $report, qr/0000 -> 0007 .* INIT -> C/, "step 1" );
     like( $report, qr/0000 -> 0002 .* INIT -> B/, "step 2" );
@@ -169,12 +165,7 @@ subtest collapse_with_any_labels => sub {
 
     my $report = _process()->report(
         collapse => 1,
-        labels   => [
-            [ 'INIT', 'B' ],
-            [ 'INIT', 'C' ],
-            [ 'A',    'B' ],
-            [ 'A',    'C' ],
-        ],
+        labels   => [ [ 'INIT', 'B' ], [ 'INIT', 'C' ], [ 'A', 'B' ], [ 'A', 'C' ], ],
     );
 
     like( $report, qr/ + 1 .* INIT -> C\n/, "INIT -> C" );
